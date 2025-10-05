@@ -88,7 +88,7 @@ export default function ServiciosPage() {
     <div className="space-y-6">
       <div>
         <div className="text-sm text-gray-500">Servicios</div>
-        <h1 className="text-3xl md:text-4xl font-bold text-teal-800">Servicios</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-[#1a5490]">Servicios</h1>
       </div>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -100,20 +100,20 @@ export default function ServiciosPage() {
               <ChevronDown className="w-4 h-4" />
             </div>
           </div>
-          <Calendar className="w-6 h-6 text-teal-700" />
+          <Calendar className="w-6 h-6 text-[#1a5490]" />
         </div>
         <div className="bg-white rounded-xl border p-4 flex items-center justify-between">
           <div>
             <div className="text-xs text-gray-500 mb-1">Entradas</div>
             <div className="text-2xl font-bold">20</div>
           </div>
-          <Car className="w-6 h-6 text-teal-700" />
+          <Car className="w-6 h-6 text-[#1a5490]" />
         </div>
       </section>
 
       <section className="bg-white rounded-2xl border overflow-hidden">
         <div className="px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-teal-800">Servicios Activos</h2>
+          <h2 className="text-lg font-semibold text-[#1a5490]">Servicios Activos</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -162,11 +162,11 @@ export default function ServiciosPage() {
 
       <section className="bg-white rounded-2xl border overflow-hidden">
         <div className="px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-teal-800">Servicios Realizados</h2>
+          <h2 className="text-lg font-semibold text-[#1a5490]">Servicios Realizados</h2>
         </div>
         <div className="px-6 py-4 border-b flex items-center justify-between">
           <h3 className="font-semibold">Últimos Servicios</h3>
-          <Link href="/servicios/todos" className="text-teal-700 text-sm font-medium hover:underline flex items-center gap-1">
+          <Link href="/servicios/todos" className="text-[#1a5490] text-sm font-medium hover:underline flex items-center gap-1">
             Todas
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

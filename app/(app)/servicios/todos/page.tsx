@@ -45,14 +45,14 @@ export default function ServiciosPage() {
     <div className="space-y-6">
       <div>
         <div className="text-sm text-gray-500">Servicios / Todas</div>
-        <h1 className="text-3xl md:text-4xl font-bold text-teal-800">Servicios</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-[#1a5490]">Servicios</h1>
       </div>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link href="/servicios/todos">
           <div className="bg-white rounded-xl border p-4 flex items-center justify-between cursor-pointer hover:border-teal-300 transition-colors">
             <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-teal-700" />
+              <Calendar className="w-5 h-5 text-[#1a5490]" />
               <div>
                 <div className="text-xs text-gray-500 mb-1">Date</div>
                 <div className="text-base font-semibold flex items-center gap-2">
@@ -65,7 +65,7 @@ export default function ServiciosPage() {
         </Link>
         <div className="bg-white rounded-xl border p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Car className="w-5 h-5 text-teal-700" />
+            <Car className="w-5 h-5 text-[#1a5490]" />
             <div>
               <div className="text-xs text-gray-500 mb-1">Entradas</div>
               <div className="text-2xl font-bold">20</div>
@@ -76,7 +76,7 @@ export default function ServiciosPage() {
 
       <section className="bg-white rounded-2xl border overflow-hidden">
         <div className="px-6 py-4 border-b flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-teal-800">Servicios</h2>
+          <h2 className="text-lg font-semibold text-[#1a5490]">Servicios</h2>
           <div className="flex items-center gap-3 flex-1 max-w-md">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -111,7 +111,7 @@ export default function ServiciosPage() {
                   <td className="p-4">
                     <Link 
                       href={`/servicios/todos/${service.id}`}
-                      className="font-medium text-teal-700 hover:underline"
+                      className="font-medium text-[#1a5490] hover:underline"
                     >
                       {service.placa}
                     </Link>
