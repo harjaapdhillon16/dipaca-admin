@@ -32,49 +32,64 @@ export default function LoginPage() {
           </div>
           <h1 className="text-3xl md:text-4xl font-semibold text-primary text-balance mb-8">Iniciar Sesion</h1>
 
-          <Card className="shadow-none border-0">
-            <CardContent className="p-0">
-              <form onSubmit={onSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+          <CardContent className="p-0">
+            <form onSubmit={onSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm text-muted-foreground">Email</Label>
+                <div className="relative">
+                  <span className="absolute left-1 top-1.5 text-muted-foreground">✉</span>
                   <Input
                     id="email"
                     type="email"
                     placeholder="demo@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    className="pl-6 border-0 border-b border-border rounded-full bg-transparent"
                   />
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm text-muted-foreground">Contraseña</Label>
+                <div className="relative">
                   <Input
                     id="password"
                     type="password"
                     placeholder="demo@email.com"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="border-0 border-b border-border rounded-full bg-transparent pr-10"
                   />
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1.5 text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      const input = document.getElementById('password') as HTMLInputElement
+                      input.type = input.type === 'password' ? 'text' : 'password'
+                    }}
+                  >
+                    👁
+                  </button>
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="remember" />
-                    <Label htmlFor="remember" className="text-sm text-muted-foreground">
-                      Remember Me
-                    </Label>
-                  </div>
-                  <Link href="#" className="text-sm text-primary hover:underline">
-                    Forgot Password?
-                  </Link>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Checkbox id="remember" />
+                  <Label htmlFor="remember" className="text-sm text-muted-foreground">
+                    Remember Me
+                  </Label>
                 </div>
+                <Link href="#" className="text-sm text-primary hover:underline">
+                  Forgot Password?
+                </Link>
+              </div>
 
-                <Button type="submit" className="w-full h-12 rounded-full">
-                  Iniciar Sesion
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+              <button type="submit" className="w-64 ml-18 h-12 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground mt-8">
+                Iniciar Sesion
+              </button>
+            </form>
+          </CardContent>
         </div>
       </section>
 
