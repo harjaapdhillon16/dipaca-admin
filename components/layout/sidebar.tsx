@@ -35,6 +35,12 @@ export default function AppSidebar() {
   const pathname = usePathname()
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
+  const isClientDash = pathname.startsWith("/client-dash")
+
+  // Filter nav items based on route
+  const visibleNav = isClientDash 
+    ? nav.filter(item => item.label === "Servicios")
+    : nav
 
   return (
     <>
@@ -55,9 +61,13 @@ export default function AppSidebar() {
             Menu
           </SidebarGroupLabel>
           <SidebarMenu>
-            {nav.map(({ href, label, icon: Icon, aliases }) => {
+            {visibleNav.map(({ href, label, icon: Icon, aliases }) => {
               const matches = (p: string) => pathname === p || pathname.startsWith(p + "/")
-              const active = matches(href) || (aliases?.some(matches) ?? false)
+              // Force active state for Servicios when on client-dash routes
+              const active = isClientDash && label === "Servicios"
+                ? true
+                : (matches(href) || (aliases?.some(matches) ?? false))
+              
               return (
                 <SidebarMenuItem key={href}>
                   <SidebarMenuButton

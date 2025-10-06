@@ -1,7 +1,13 @@
+"use client"
+
+import { usePathname } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 import { SidebarTrigger } from "../ui/sidebar"
 
 export default function Topbar() {
+  const pathname = usePathname()
+  const isClientDash = pathname.startsWith("/client-dash")
+
   return (
     <header className="sticky top-0 z-0 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
       <div className="flex items-center justify-between gap-4 px-6 py-3">
@@ -14,7 +20,9 @@ export default function Topbar() {
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
             <div className="text-sm font-medium leading-none">Maria Jose</div>
-            <div className="text-xs text-muted-foreground mt-1">Administrador</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {isClientDash ? "Client" : "Administrador"}
+            </div>
           </div>
           <Avatar className="h-9 w-9 border-2 border-sidebar-border">
             <AvatarImage alt="Maria Jose" src="/diverse-avatars.png" />
