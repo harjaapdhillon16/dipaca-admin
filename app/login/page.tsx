@@ -27,10 +27,10 @@ export default function LoginPage() {
       {/* Left - form */}
       <section className="flex items-center justify-center p-6 md:p-10">
         <div className="w-full max-w-md">
-          <div className="mb-8">
+          {/* <div className="mb-8">
             <div className="h-6 w-28 rounded bg-secondary" aria-hidden />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-semibold text-primary text-balance mb-8">Iniciar Sesion</h1>
+          </div> */}
+          <h1 className="text-3xl md:text-4xl font-semibold text-primary ml-26 text-balance mb-8">Iniciar Sesion</h1>
 
           <CardContent className="p-0">
             <form onSubmit={onSubmit} className="space-y-6">
