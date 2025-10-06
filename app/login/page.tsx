@@ -78,8 +78,16 @@ export default function LoginPage() {
         </div>
       </section>
 
-      {/* Right - teal welcome panel */}
-      <section className="hidden md:flex items-center justify-center bg-[var(--sidebar)] text-[var(--sidebar-foreground)]">
+      {/* Right - teal welcome panel with background pattern */}
+      <section 
+        className="hidden md:flex items-center justify-center bg-[var(--sidebar)] text-[var(--sidebar-foreground)]"
+        style={{
+          backgroundImage: 'url(/background.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
         <div className="max-w-sm text-center">
           <p className="text-5xl font-semibold mb-2">Hola!</p>
           <p className="text-base text-[color:var(--sidebar-foreground)]/80">Ingresa tus datos, para comenzar</p>
