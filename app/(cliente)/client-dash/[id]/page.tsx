@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useMemo, useState } from "react"
+import { use, useMemo, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,21 +17,19 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { Clock, User2, Car, Trash2, Plus, Percent, Minus } from "lucide-react"
+import { serviciosAPI, servicioItemsAPI } from "@/lib/api"
 
 type LineItem = {
   id: string
-  name: string
-  price: number
+  nombre: string
+  precio: number
 }
 
-const CATALOG: { value: string; label: string; price: number }[] = [
-  { value: "lavado-exterior", label: "Lavado Exterior", price: 10 },
-  { value: "aspirado", label: "Aspirado", price: 10 },
-  { value: "cera", label: "Cera", price: 12 },
-  { value: "shampoo", label: "Shampoo", price: 15 },
-  { value: "ambientador", label: "Ambientador", price: 5 },
-  { value: "aceite", label: "Aceite", price: 20 },
-]
+type Producto = {
+  id: string
+  nombre: string
+  precio: number
+}
 
 function formatUSD(n: number) {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
@@ -62,72 +58,114 @@ function InfoCard({
 export default function ServiceDetailPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id: servicioId } = use(params)
   const { toast } = useToast()
   const router = useRouter()
 
-  // Demo metadata (would come from API in a real app)
-  const plate = params.id ?? "AGK345P"
-  const entryTime = "3:00 PM"
-  const clientName = "Marco Cobo"
-  const brand = "Ford"
-  const model = "Fusion"
-  const dateLabel = new Date().toLocaleDateString(undefined, {
-    month: "2-digit",
-    day: "2-digit",
-    year: "2-digit",
-  })
+  // Service data
+  const [servicio, setServicio] = useState<any>(null)
+  const [items, setItems] = useState<LineItem[]>([])
+  const [catalogo, setCatalogo] = useState<Producto[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Line items
-  const [items, setItems] = useState<LineItem[]>([
-    { id: "i1", name: "Lavado Exterior", price: 10 },
-    { id: "i2", name: "Aspirado", price: 10 },
-  ])
-
-  // Discounts via points
+  // Discounts
   const AVAILABLE_POINTS = 1500
-  const [pointsApplied, setPointsApplied] = useState(10) // points already applied
-  const [discountApplied, setDiscountApplied] = useState(1) // dollars computed from applied points
+  const [pointsApplied, setPointsApplied] = useState(0)
+  const [discountApplied, setDiscountApplied] = useState(0)
 
-  // Checkout state
+  // Modal states
   const [isAddOpen, setAddOpen] = useState(false)
   const [isDiscountOpen, setDiscountOpen] = useState(false)
   const [isCheckoutOpen, setCheckoutOpen] = useState(false)
 
-  const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.price, 0), [items])
+  useEffect(() => {
+    fetchData()
+  }, [servicioId])
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      const [servicioData, itemsData, catalogoData] = await Promise.all([
+        serviciosAPI.getById(servicioId),
+        servicioItemsAPI.getItems(servicioId),
+        servicioItemsAPI.getCatalogo()
+      ])
+
+      setServicio(servicioData)
+      setItems(itemsData)
+      setCatalogo(catalogoData)
+      setPointsApplied(servicioData.puntos_usados || 0)
+      setDiscountApplied(servicioData.descuento || 0)
+    } catch (error: any) {
+      console.error('Error fetching data:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Error al cargar datos",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.precio, 0), [items])
   const total = Math.max(0, subtotal - discountApplied)
 
-  function removeItem(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id))
+  async function removeItem(id: string) {
+    try {
+      await servicioItemsAPI.removeItem(id)
+      setItems((prev) => prev.filter((i) => i.id !== id))
+      toast({
+        title: "Producto eliminado",
+        description: "El producto se eliminó correctamente",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al eliminar producto",
+        variant: "destructive",
+      })
+    }
   }
 
-  // --- Add Product Modal state ---
+  // --- Add Product Modal ---
   const [candidate, setCandidate] = useState<string | undefined>(undefined)
-  const selectedOption = useMemo(() => CATALOG.find((c) => c.value === candidate), [candidate])
+  const selectedOption = useMemo(() => catalogo.find((c) => c.id === candidate), [candidate, catalogo])
 
-  function commitAddProduct() {
+  async function commitAddProduct() {
     if (!selectedOption) return
-    setItems((prev) => [
-      ...prev,
-      {
-        id: `${selectedOption.value}-${Date.now()}`,
-        name: selectedOption.label,
-        price: selectedOption.price,
-      },
-    ])
-    // reset and close
-    setCandidate(undefined)
-    setAddOpen(false)
+
+    try {
+      const newItem = await servicioItemsAPI.addItem(servicioId, {
+        nombre: selectedOption.nombre,
+        precio: selectedOption.precio
+      })
+
+      setItems((prev) => [...prev, newItem])
+      setCandidate(undefined)
+      setAddOpen(false)
+
+      toast({
+        title: "Producto agregado",
+        description: `${selectedOption.nombre} agregado correctamente`,
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al agregar producto",
+        variant: "destructive",
+      })
+    }
   }
 
-  // --- Discount Modal state ---
+  // --- Discount Modal ---
   const [tempPoints, setTempPoints] = useState(pointsApplied)
 
-  // 10 points = $1 discount
   function pointsToDollars(pts: number, maxSubtotal: number) {
     const dollars = Math.floor(pts / 10)
-    return Math.min(dollars, maxSubtotal) // can't exceed current subtotal
+    return Math.min(dollars, maxSubtotal)
   }
 
   function clampPoints(pts: number, maxSubtotal: number) {
@@ -135,26 +173,95 @@ export default function ServiceDetailPage({
     return Math.max(0, Math.min(pts, Math.min(AVAILABLE_POINTS, maxPtsFromSubtotal)))
   }
 
-  function applyDiscount() {
+  async function applyDiscount() {
     const clamped = clampPoints(tempPoints, subtotal)
     const dollars = pointsToDollars(clamped, subtotal)
-    setPointsApplied(clamped)
-    setDiscountApplied(dollars)
-    setDiscountOpen(false)
+
+    try {
+      await servicioItemsAPI.applyDiscount(servicioId, {
+        puntos_usados: clamped,
+        descuento: dollars
+      })
+
+      setPointsApplied(clamped)
+      setDiscountApplied(dollars)
+      setDiscountOpen(false)
+
+      toast({
+        title: "Descuento aplicado",
+        description: `Descuento de ${formatUSD(dollars)} aplicado`,
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al aplicar descuento",
+        variant: "destructive",
+      })
+    }
   }
 
   // --- Checkout Modal ---
   const [paymentMethod, setPaymentMethod] = useState<string | undefined>()
   const [tip, setTip] = useState<number>(0)
 
-  function confirmPayment() {
-    const grandTotal = Math.max(0, total + tip)
-    toast({
-      title: "Pago confirmado",
-      description: `Método: ${paymentMethod ?? "N/D"} • Propina: ${formatUSD(tip)} • Total: ${formatUSD(grandTotal)}`,
-    })
-    setCheckoutOpen(false)
+  async function confirmPayment() {
+    if (!paymentMethod) return
+
+    try {
+      await servicioItemsAPI.processPayment(servicioId, {
+        metodo_pago: paymentMethod,
+        propina: tip
+      })
+
+      const grandTotal = Math.max(0, total + tip)
+      toast({
+        title: "Pago confirmado",
+        description: `Método: ${paymentMethod} • Propina: ${formatUSD(tip)} • Total: ${formatUSD(grandTotal)}`,
+      })
+
+      setCheckoutOpen(false)
+      setTimeout(() => router.push('/client-dash'), 1500)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al procesar pago",
+        variant: "destructive",
+      })
+    }
   }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Cargando servicio...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!servicio) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Servicio no encontrado</p>
+          <Button onClick={() => router.push('/client-dash')}>Volver</Button>
+        </div>
+      </div>
+    )
+  }
+
+  const plate = servicio.placa || 'N/A'
+  const entryTime = servicio.hora_entrada ? new Date(`2000-01-01T${servicio.hora_entrada}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A'
+  const clientName = `${servicio.cliente_nombre} ${servicio.cliente_apellido}`
+  const brand = servicio.marca
+  const model = servicio.modelo
+  const dateLabel = new Date(servicio.fecha).toLocaleDateString(undefined, {
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit",
+  })
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6">
@@ -182,30 +289,36 @@ export default function ServiceDetailPage({
 
       {/* Items list */}
       <div className="space-y-3">
-        {items.map((it) => (
-          <div key={it.id} className="flex items-center justify-between rounded-lg bg-background px-1 py-1">
-            <div className="text-foreground">{it.name}</div>
-            <div className="flex items-center gap-3">
-              <div className="font-medium text-foreground">{formatUSD(it.price)}</div>
-              <button
-                aria-label={`Eliminar ${it.name}`}
-                className="text-muted-foreground hover:text-destructive"
-                onClick={() => removeItem(it.id)}
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
-            </div>
+        {items.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No hay servicios agregados
           </div>
-        ))}
+        ) : (
+          items.map((it) => (
+            <div key={it.id} className="flex items-center justify-between rounded-lg bg-background px-1 py-1">
+              <div className="text-foreground">{it.nombre}</div>
+              <div className="flex items-center gap-3">
+                <div className="font-medium text-foreground">{formatUSD(it.precio)}</div>
+                <button
+                  aria-label={`Eliminar ${it.nombre}`}
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => removeItem(it.id)}
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
-      {/* Actions - Styled to match image */}
+      {/* Actions */}
       <div className="flex justify-center gap-4 pt-2">
         <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
-            <button className="flex items-center gap-2 rounded-full hover:bg-slate-50 bg-white px-6 py-3 text-sm font-medium text-slate-700 transition-colors ">
+            <button className="flex items-center gap-2 rounded-full hover:bg-slate-50 bg-white px-6 py-3 text-sm font-medium text-slate-700 transition-colors">
               <div className="bg-slate-700 rounded-full p-1 text-white">
-              <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4" />
               </div>  
               Agregar Producto
             </button>
@@ -223,20 +336,20 @@ export default function ServiceDetailPage({
                     <SelectValue placeholder="Selecciona un servicio o producto" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATALOG.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label} — {formatUSD(opt.price)}
+                    {catalogo.map((opt) => (
+                      <SelectItem key={opt.id} value={opt.id}>
+                        {opt.nombre} — {formatUSD(opt.precio)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {selectedOption ? (
+              {selectedOption && (
                 <div className="flex items-center justify-between rounded-md border px-3 py-2">
-                  <div className="text-foreground">{selectedOption.label}</div>
+                  <div className="text-foreground">{selectedOption.nombre}</div>
                   <div className="flex items-center gap-3">
-                    <span className="font-medium">{formatUSD(selectedOption.price)}</span>
+                    <span className="font-medium">{formatUSD(selectedOption.precio)}</span>
                     <button
                       aria-label="Quitar selección"
                       className="text-muted-foreground hover:text-destructive"
@@ -246,7 +359,7 @@ export default function ServiceDetailPage({
                     </button>
                   </div>
                 </div>
-              ) : null}
+              )}
             </div>
 
             <DialogFooter className="mt-2">
@@ -268,9 +381,9 @@ export default function ServiceDetailPage({
           }}
         >
           <DialogTrigger asChild>
-            <button className="flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors ">
+            <button className="flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
               <div className="bg-slate-700 rounded-full p-1 text-white">
-              <Percent className="h-4 w-4" />
+                <Percent className="h-4 w-4" />
               </div>
               Agregar Descuento
             </button>
@@ -359,16 +472,15 @@ export default function ServiceDetailPage({
         </div>
       </div>
 
-      {/* Checkout action - Styled to match image */}
+      {/* Checkout */}
       <Dialog open={isCheckoutOpen} onOpenChange={setCheckoutOpen}>
         <DialogTrigger asChild>
-     <button
-  disabled={total <= 0}
-  className="mx-auto mt-2 w-full flex items-center justify-center max-w-md rounded-full bg-slate-700 py-3 text-sm font-medium text-white transition-colors hover:bg-slate-600 disabled:opacity-50"
->
-  Confirmar pago
-</button>
-
+          <button
+            disabled={total <= 0}
+            className="mx-auto mt-2 w-full flex items-center justify-center max-w-md rounded-full bg-slate-700 py-3 text-sm font-medium text-white transition-colors hover:bg-slate-600 disabled:opacity-50"
+          >
+            Confirmar pago
+          </button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -386,6 +498,9 @@ export default function ServiceDetailPage({
                   <SelectItem value="EFECTIVO">Efectivo</SelectItem>
                   <SelectItem value="TARJETA">Tarjeta</SelectItem>
                   <SelectItem value="TRANSFERENCIA">Transferencia</SelectItem>
+                  <SelectItem value="PAGO_MOVIL">Pago Móvil</SelectItem>
+                  <SelectItem value="ZELLE">Zelle</SelectItem>
+                  <SelectItem value="BINANCE">Binance</SelectItem>
                 </SelectContent>
               </Select>
             </div>

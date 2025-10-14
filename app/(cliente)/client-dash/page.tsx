@@ -1,83 +1,117 @@
 'use client';
+
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { clientDashboardAPI } from '../../../lib/api';
+import { useAuth } from '../../../hooks/useAuth';
+import { useRouter } from 'next/navigation';
 
 interface Service {
   id: string;
   placa: string;
   marca: string;
-  cliente: string;
-  servicio: string;
-  status: 'LAVADO' | 'ASPIRADO' | 'SECADO' | 'FINALIZADO';
-  cancelado: 'NO' | 'SI';
+  modelo: string;
+  cliente_nombre: string;
+  cliente_apellido: string;
+  tipo_servicio: string;
+  monto: number;
+  status: string;
+  cancelado: boolean;
 }
 
-export default function ServiciosPage() {
+export default function ClientDashPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [turno, setTurno] = useState('Today');
-  const [prioridad, setPrioridad] = useState('20');
+  const [servicios, setServicios] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const servicios: Service[] = [
-    {
-      id: 'A5K345P',
-      placa: 'A5K345P',
-      marca: 'FORD-FUSION',
-      cliente: 'MARCO COBO',
-      servicio: 'FULL - $20',
-      status: 'LAVADO',
-      cancelado: 'NO',
-    },
-    {
-      id: 'JJK34OE',
-      placa: 'JJK34OE',
-      marca: 'FORD-FUSION',
-      cliente: 'MARCELA PAYARES',
-      servicio: 'FULL - $20',
-      status: 'ASPIRADO',
-      cancelado: 'SI',
-    },
-    {
-      id: '3INM02Q',
-      placa: '3INM02Q',
-      marca: 'FORD-FIESTA',
-      cliente: 'LUIS PEREZ',
-      servicio: 'FULL - $20',
-      status: 'SECADO',
-      cancelado: 'NO',
-    },
-    {
-      id: 'BYT3535',
-      placa: 'BYT3535',
-      marca: 'FORD-EXPLORER',
-      cliente: 'JOSE DIAZ',
-      servicio: 'FULL - $20',
-      status: 'FINALIZADO',
-      cancelado: 'SI',
-    },
-  ];
+  useEffect(() => {
+    // Check if user is a cliente
+    if (user && user.rol !== 'cliente') {
+      router.push('/home');
+      return;
+    }
 
-  const getStatusStyles = (status: Service['status']) => {
-    const styles = {
+    if (user && !user.cliente_id) {
+      setError('Tu cuenta no está asociada a un cliente. Por favor contacta al administrador.');
+      setLoading(false);
+      return;
+    }
+
+    if (user) {
+      fetchActiveServices();
+    }
+  }, [user, turno]);
+
+  const fetchActiveServices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await clientDashboardAPI.getActiveServices(turno);
+      setServicios(data);
+    } catch (err: any) {
+      console.error('Error fetching active services:', err);
+      
+      // Handle specific error cases
+      if (err.message.includes('not associated with a cliente')) {
+        setError('Tu cuenta no está vinculada a un cliente. Contacta al administrador para obtener ayuda.');
+      } else if (err.message.includes('Invalid or expired token')) {
+        setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+        setTimeout(() => router.push('/login'), 2000);
+      } else {
+        setError(err.message || 'Error al cargar servicios');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusStyles = (status: string) => {
+    const statusUpper = status.toUpperCase();
+    const styles: Record<string, string> = {
       LAVADO: 'bg-blue-500 text-white',
       ASPIRADO: 'bg-amber-600 text-white',
       SECADO: 'bg-blue-500 text-white',
       FINALIZADO: 'bg-green-500 text-white',
+      PENDIENTE: 'bg-yellow-500 text-white',
+      EN_PROCESO: 'bg-blue-600 text-white',
     };
-    return styles[status];
+    return styles[statusUpper] || 'bg-gray-500 text-white';
   };
 
-  const getCanceladoStyles = (cancelado: 'NO' | 'SI') => {
-    return cancelado === 'NO'
-      ? 'bg-red-500 text-white' 
-      : 'bg-green-500 text-white';
+  const getCanceladoStyles = (cancelado: boolean) => {
+    return cancelado
+      ? 'bg-green-500 text-white' 
+      : 'bg-red-500 text-white';
   };
+
+  // Calculate priority based on number of active services
+  const prioridad = servicios.length;
+
+  // Show loading while checking user
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a5490] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verificando usuario...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen  ">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <p className="text-sm text-gray-500 mb-1">Servicios</p>
-          <h1 className="text-3xl md:text-4xl font-bold text-[#1a5490]">Servicios</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-[#1a5490]">
+            Mis Servicios
+            {user && <span className="text-xl ml-2 text-gray-600">- {user.nombre}</span>}
+          </h1>
         </div>
 
         {/* Filters */}
@@ -94,11 +128,12 @@ export default function ServiciosPage() {
                 <select 
                   value={turno}
                   onChange={(e) => setTurno(e.target.value)}
-                  className="font-semibold text-gray-800 bg-transparent border-none outline-none cursor-pointer"
+                  className="font-semibold text-gray-800 bg-transparent border-none outline-none cursor-pointer w-full"
+                  disabled={loading}
                 >
-                  <option>Today</option>
-                  <option>Tomorrow</option>
-                  <option>This Week</option>
+                  <option value="Today">Hoy</option>
+                  <option value="Tomorrow">Mañana</option>
+                  <option value="This Week">Esta Semana</option>
                 </select>
               </div>
             </div>
@@ -112,16 +147,10 @@ export default function ServiciosPage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-500">Prioridad</p>
-                <select 
-                  value={prioridad}
-                  onChange={(e) => setPrioridad(e.target.value)}
-                  className="font-semibold text-gray-800 bg-transparent border-none outline-none cursor-pointer"
-                >
-                  <option>20</option>
-                  <option>10</option>
-                  <option>30</option>
-                </select>
+                <p className="text-xs text-gray-500">En Cola</p>
+                <div className="font-semibold text-gray-800">
+                  {prioridad}
+                </div>
               </div>
             </div>
           </div>
@@ -132,56 +161,90 @@ export default function ServiciosPage() {
           <div className="p-6">
             <h2 className="text-xl font-semibold text-[#1a5490] mb-6">Servicios Activos</h2>
             
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a5490] mx-auto"></div>
+                <p className="mt-4 text-gray-600">Cargando servicios...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+              <div className="text-center py-8">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-4">
+                  <p className="text-red-600 mb-2 font-semibold">Error</p>
+                  <p className="text-red-700">{error}</p>
+                </div>
+                {!error.includes('no está vinculada') && (
+                  <button 
+                    onClick={fetchActiveServices}
+                    className="px-4 py-2 bg-[#1a5490] text-white rounded-lg hover:bg-[#144070]"
+                  >
+                    Reintentar
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && !error && servicios.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No tienes servicios activos para {turno === 'Today' ? 'hoy' : turno === 'Tomorrow' ? 'mañana' : 'esta semana'}
+              </div>
+            )}
+
             {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Placa</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Marca-Modelo</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Servicios</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Cancelado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {servicios.map((servicio) => (
-                    <tr key={servicio.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-4 px-4">
-                        <Link 
-                          href={`client-dash/${servicio.id}`}
-                          className="text-[#1a5490] font-semibold hover:underline"
-                        >
-                          {servicio.placa}
-                        </Link>
-                      </td>
-                      <td className="py-4 px-4 text-gray-700 font-medium">
-                        {servicio.marca}
-                      </td>
-                      <td className="py-4 px-4 text-gray-700 font-medium">
-                        {servicio.cliente}
-                      </td>
-                      <td className="py-4 px-4 text-gray-700">
-                        {servicio.servicio}
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getStatusStyles(servicio.status)}`}>
-                          {servicio.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`px-6 py-1.5 rounded-full text-sm font-semibold ${getCanceladoStyles(servicio.cancelado)}`}>
-                          {servicio.cancelado}
-                        </span>
-                      </td>
+            {!loading && !error && servicios.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Placa</th>
+                      <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Marca-Modelo</th>
+                      <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Servicios</th>
+                      <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Pagado</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {servicios.map((servicio) => (
+                      <tr key={servicio.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-4 px-4">
+                          <Link 
+                            href={`/client-dash/${servicio.id}`}
+                            className="text-[#1a5490] font-semibold hover:underline"
+                          >
+                            {servicio.placa || 'N/A'}
+                          </Link>
+                        </td>
+                        <td className="py-4 px-4 text-gray-700 font-medium">
+                          {servicio.marca} {servicio.modelo}
+                        </td>
+                        <td className="py-4 px-4 text-gray-700">
+                          {servicio.tipo_servicio} - ${servicio.monto}
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getStatusStyles(servicio.status)}`}>
+                            {servicio.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-6 py-1.5 rounded-full text-sm font-semibold ${getCanceladoStyles(servicio.cancelado)}`}>
+                            {servicio.cancelado ? 'SI' : 'NO'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Additional Info Section */}
+    
       </div>
     </div>
   );
