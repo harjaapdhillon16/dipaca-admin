@@ -1,3 +1,4 @@
+//(cliente)/client-dash/[id]/page.tsx
 "use client"
 
 import { use, useMemo, useState, useEffect } from "react"

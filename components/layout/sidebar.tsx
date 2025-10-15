@@ -3,7 +3,7 @@
 import type React from "react"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   SidebarHeader,
   SidebarContent,
@@ -29,18 +29,43 @@ const nav: NavItem[] = [
   { href: "/servicios", label: "Servicios", icon: Wrench, aliases: ["/admin/servicios"] },
   { href: "/clientes", label: "Clientes", icon: Users, aliases: ["/admin/clientes"] },
   { href: "/trabajadores", label: "Trabajadores", icon: BadgeCheck, aliases: ["/admin/trabajadores"] },
+  { href: "/client-dash", label: "Servicios ", icon: Wrench, aliases: ["/client-dash/"] },
 ]
 
 export default function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
   const isClientDash = pathname.startsWith("/client-dash")
 
   // Filter nav items based on route
-  const visibleNav = isClientDash 
-    ? nav.filter(item => item.label === "Servicios")
-    : nav
+const visibleNav = isClientDash 
+  ? nav.filter(item => item.label === "Servicios ")
+  : nav.filter(item => item.label !== "Servicios ")
+
+  const handleLogout = async () => {
+    try {
+      // Call logout API endpoint to clear HTTP-only cookies
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      // Clear any client-side tokens
+      localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
+      sessionStorage.clear()
+
+      // Redirect to login page
+      router.push('/login')
+      router.refresh() // Refresh to clear any cached data
+    } catch (error) {
+      console.error('Logout failed:', error)
+      // Still redirect to login even if API call fails
+      router.push('/login')
+    }
+  }
 
   return (
     <>
@@ -117,14 +142,14 @@ export default function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton 
-              asChild 
+              onClick={handleLogout}
               tooltip="Cerrar Sesion" 
               className="text-red-400 hover:text-red-500 group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!px-0 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-10"
             >
-              <Link href="/login" className="gap-3 w-full">
+              <div className="flex items-center gap-3 w-full">
                 <LogOut size={18} className="flex-shrink-0" />
                 <span className="group-data-[collapsible=icon]:hidden">Cerrar Sesion</span>
-              </Link>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

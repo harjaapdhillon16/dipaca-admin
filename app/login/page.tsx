@@ -58,7 +58,7 @@ export default function LoginPage() {
       {/* Left - form */}
       <section className="flex items-center justify-center p-6 md:p-10">
         <div className="w-full max-w-md">
-          <h1 className="text-3xl md:text-4xl font-semibold text-primary text-balance mb-8">
+          <h1 className="text-3xl md:text-4xl font-semibold ml-28 text-primary text-balance mb-8">
             Iniciar Sesión
           </h1>
 
