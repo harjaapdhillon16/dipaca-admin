@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dipaca-server-production.up.railway.app/api';
 
 // Helper function to get auth token
 const getAuthToken = () => {
